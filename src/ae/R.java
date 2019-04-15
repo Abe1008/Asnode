@@ -6,13 +6,6 @@
 
 package ae;
 
-import java.io.*;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.Statement;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 /**
  * Created by ae on 28.01.2017.
  * Ресурсный класс
@@ -20,11 +13,12 @@ import java.util.Date;
 /*
 Modify:
 12.04.19 отсылаем письма используя только библ. mailx, убрал apache mail
+15.04.19 время жизни задач TasksTTL ч, а у журнал TasksLog На 24 ч больше
 
 */
 
-public class R {
-  final static String Ver = "Ver. 1.6 15.04.2019"; // номер версии
+class R {
+  final static String Ver = "Ver. 1.7 15.04.2019"; // номер версии
 
   // рабочая БД
   static String WorkDB = "tasklog.db";   // /var/Gmir/ CentOs Linux (в Windows будет D:\var\Gmir\)
@@ -34,9 +28,7 @@ public class R {
   static int    HoursTasksBack  = 72;     // часы
   // временной интервал одного запроса
   static int    DeltaLoad       = 72;     // часы
-  // время жизни записи в таблице лога, если ее флаг 0
-  static int    LogRecordTTL    = 31*24;   // часы
-  // время жизни записей о задачах
+  // время жизни записей о задачах (в логе на 24 дольше)
   static int    TasksTTL        = 30*24;   // часы
   // названия запланированных задач (2 и более символа), по которым будем загружать результаты (cписок через запятую)
   static String MetaTasks = _r.metatask;
@@ -86,271 +78,77 @@ public class R {
     R.SiteUsr         = R.getInfo( "SiteUsr",         R.SiteUsr);         // пользователь на сайте
     R.SitePwd         = R.getInfo( "SitePwd",         R.SitePwd);         // пароль на сайте
     R.TimeOut         = R.getInfo( "TimeOut",         R.TimeOut);         // тайм-аут (мс)
-    R.LogRecordTTL    = R.getInfo( "LogRecordTTL",    R.LogRecordTTL);    // время хранения записей в логах MySql (ч)
     R.TasksTTL        = R.getInfo( "TasksTTL",        R.TasksTTL);        // время жизни записей о задачах (дни)
     R.Nodes           = R.getInfo( "Nodes",           R.Nodes);           // номер(а) отслеживаемых нод
     R.EmailTo         = R.getInfo( "EmailTo",         R.EmailTo);         // адрес отправки сообщения
     R.SmtpMailCC      = R.getInfo( "SmtpMailCC",      R.SmtpMailCC);      // кому отсылать копии
-    //
-    String str        = R.getInfo( "MAILDEBUG",       ""+R.MAILDEBUG);       // отладка почтового сообщения
-    R.MAILDEBUG = str.contentEquals("true");
+    R.MAILDEBUG       = R.getInfo( "MAILDEBUG",       R.MAILDEBUG);       // отладка почтового сообщения
 
-    // System.out.println("HoursNotOnLine  = " + R.HoursNotOnLine);
-    // System.out.println("HoursAfterEmail = " + R.HoursAfterEmail);
-    // System.out.println("HoursExpLens    = " + R.HoursExpLens);
-    // System.out.println("TaskQuestDelay  = " + R.TaskQuestDelay);
-    // System.out.println("TaskFail        = " + R.TaskFail);
-    System.out.println("MetaTasks: " + R.MetaTasks + "    Nodes: " + R.Nodes);
-    System.out.println("EmailTo: " + R.EmailTo +   "    SmtpMailCC: " + R.SmtpMailCC);
-    System.out.println("HoursTasksBack(ч): " + R.HoursTasksBack + "    DeltaLoad(ч): " + R.DeltaLoad);
-    System.out.println("TasksTTL(ч): " + R.TasksTTL +       "    LogRecordTTL(ч): " + R.LogRecordTTL);
-    // System.out.println("TimeOut (ms)    = " + R.TimeOut);
+    System.out.println("MetaTasks: " + R.MetaTasks + "   Nodes: " + R.Nodes);
+    System.out.println("EmailTo: " + R.EmailTo +   "   SmtpMailCC: " + R.SmtpMailCC);
+    System.out.println("HoursTasksBack(ч): " + R.HoursTasksBack +
+                        "   DeltaLoad(ч): " + R.DeltaLoad +
+                        "   TasksTTL(ч): " + R.TasksTTL);
   }
 
   /**
-     * Пауза выполнения программы
-     * @param time   время задержки, мсек
-     */
-    static void sleep(long time)
-    {
-        try {
-            Thread.sleep(time);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * прочитать ресурсный файл
-     * by novel  http://skipy-ru.livejournal.com/5343.html
-     * https://docs.oracle.com/javase/tutorial/deployment/webstart/retrievingResources.html
-     * @param nameRes - имя ресурсного файла
-     * @return -содержимое ресурсного файла
-     */
-    public String readRes(String nameRes)
-    {
-        String str = null;
-        ByteArrayOutputStream buf = readResB(nameRes);
-        if(buf != null) {
-            str = buf.toString();
-        }
-        return str;
-    }
-
-    /**
-     * Поместить ресурс в байтовый массив
-     * @param nameRes - название ресурса (относительно каталога пакета)
-     * @return - байтовый массив
-     */
-    private ByteArrayOutputStream readResB(String nameRes)
-    {
-        try {
-            // Get current classloader
-            InputStream is = getClass().getResourceAsStream(nameRes);
-            if(is == null) {
-                System.out.println("Not found resource: " + nameRes);
-                return null;
-            }
-            // https://habrahabr.ru/company/luxoft/blog/278233/ п.8
-            BufferedInputStream bin = new BufferedInputStream(is);
-            ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            int len;
-            byte[] buf = new byte[512];
-            while((len=bin.read(buf)) != -1) {
-                bout.write(buf,0,len);
-            }
-            return bout;
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        return null;
-    }
-
-    /**
-     * Записать в файл текст из строки
-     * @param strTxt - строка текста
-     * @param fileName - имя файла
-     * @return      true - записано, false - ошибка
-     */
-    public boolean writeStr2File(String strTxt, String fileName)
-    {
-        File f = new File(fileName);
-        try {
-            PrintWriter out = new PrintWriter(f);
-            out.write(strTxt);
-            out.close();
-        } catch(IOException ex) {
-            ex.printStackTrace();
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     *  Записать в файл ресурсный файл
-     * @param nameRes   имя ресурса (от корня src)
-     * @param fileName  имя файла, куда записывается ресурс
-     * @return  true - запись выполнена, false - ошибка
-     */
-    public boolean writeRes2File(String nameRes, String fileName)
-    {
-        boolean b = false;
-        ByteArrayOutputStream buf = readResB(nameRes);
-        if(buf != null) {
-            try {
-                FileOutputStream fout = new FileOutputStream(fileName);
-                buf.writeTo(fout);
-                fout.close();
-                b = true;
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return b;
-    }
-    
-    /**
-     * Загружает текстовый ресурс в заданной кодировке
-     * @param name      имя ресурса
-     * @param code_page кодировка, например "Cp1251"
-     * @return          строка ресурса
-     */
-    public String getText(String name, String code_page)
-    {
-        StringBuilder sb = new StringBuilder();
-        try {
-            InputStream is = this.getClass().getResourceAsStream(name);  // Имя ресурса
-            BufferedReader br = new BufferedReader(new InputStreamReader(is, code_page));
-            String line;
-            while ((line = br.readLine()) !=null) {
-                sb.append(line);  sb.append("\n");
-            }
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        return sb.toString();
-    }
-
-    /**
-     * Получить из таблицы _Info значение ключа, а если таблицы или ключа нет, то вернуть значение по-умолчанию
-     * CREATE TABLE _Info(key text PRIMARY KEY, val text)
-     * @param keyName       имя ключа
-     * @param defaultValue  значение по-умолчанию
-     * @return значение ключа
-     */
-    private static int getInfo(String keyName, int defaultValue)
-    {
-      String val = getInfo(keyName, ""+defaultValue);
-      return Integer.parseInt(val);
-    }
-
-    /**
-     * Получить из таблицы _Info значение ключа, а если таблицы или ключа нет, то вернуть значение по-умолчанию
-     * CREATE TABLE _Info(key text PRIMARY KEY, val text)
-     * @param keyName       имя ключа
-     * @param defaultValue  значение по-умолчанию
-     * @return значение ключа (действительное число)
-     */
-    private static double getInfo(String keyName, double defaultValue)
-    {
-      String val = getInfo(keyName, ""+defaultValue);
-      return Double.parseDouble(val);
-    }
-
-    /**
-     * Получить из таблицы _Info значение ключа, а если таблицы или ключа нет, то вернуть значение по-умолчанию
-     * CREATE TABLE _Info(key text PRIMARY KEY, val text)
-     * @param keyName       имя ключа
-     * @param defaultValue  значение по-умолчанию
-     * @return значение ключа (строка)
-     */
-    private static String getInfo(String keyName, String defaultValue)
-    {
-      String val = db.Dlookup("SELECT val FROM _Info WHERE key='" + keyName + "'");
-      if(val == null || val.length() < 1) {
-        return defaultValue;
-      }
-      return val;
-    }
-
-  /**
-   * Копировать содержимое таблицы в другую аналогичную таблицу
-   * @param db      база данных
-   * @param tabSrc  исходная таблица
-   * @param tabDst  таблица, куда записывают
-   * @return  кол-во скопированных записей
+   * Пауза выполнения программы
+   * @param time   время задержки, мсек
    */
-  static int copyTab2Tab(Database db, String tabSrc, String tabDst)
+  static void sleep(long time)
   {
-    int a = 0;
-    // получим набор полей
     try {
-      Statement stm = db.getDbStatement();
-      ResultSet rst = stm.executeQuery("SELECT * FROM " + tabSrc);
-      ResultSetMetaData md = rst.getMetaData();
-      int Narr = md.getColumnCount();
-      StringBuilder nabor = new StringBuilder(256);
-      for (int i = 1; i <= Narr; i++) {
-        if(i > 1) nabor.append(",");
-        nabor.append(md.getColumnName(i));
-      }
-      rst.close();
-      // System.out.println(nabor);
-      String sql;
-      // синтаксис Sqlite!
-      sql = "INSERT OR IGNORE INTO " + tabDst + "(" + nabor + ") SELECT " + nabor + " FROM " + tabSrc;
-      a = db.ExecSql(sql);
-    } catch (Exception e) {
-      System.out.println("?-Error-don't copy table. " + e.getMessage());
+        Thread.sleep(time);
+    } catch (InterruptedException e) {
+        e.printStackTrace();
     }
-    return a;
   }
 
   /**
-   * преобразовать секунды UNIX эпохи в строку даты
-   * @param unix  секунды эпохи UNIX
-   * @return дата и время в формате SQL (ГГГГ-ММ-ДД ЧЧ:ММ:СС)
+   * Получить из таблицы _Info значение ключа, а если таблицы или ключа нет, то вернуть значение по-умолчанию
+   * CREATE TABLE _Info(key text PRIMARY KEY, val text)
+   * @param keyName       имя ключа
+   * @param defaultValue  значение по-умолчанию
+   * @return значение ключа
    */
-  public static String unix2datetimestr(int unix)
+  private static int getInfo(String keyName, int defaultValue)
   {
-    Date date = new Date(unix*1000L);
-    // format of the date
-    SimpleDateFormat jdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    //jdf.setTimeZone(TimeZone.getTimeZone("GMT-4"));
-    return jdf.format(date);
+    String val = getInfo(keyName, ""+defaultValue);
+    return Integer.parseInt(val);
   }
 
-  /*
-   * Преобразование строки времени вида ЧЧ:ММ:СС в кол-во секунд
-   * @param str   входная строка времени (0:0:2)
-   * @return  кол-во секунд
-
-  public static int hms2sec(String str)
+  /**
+   * Получить из таблицы _Info значение ключа, а если таблицы или ключа нет, то вернуть значение по-умолчанию
+   * CREATE TABLE _Info(key text PRIMARY KEY, val text)
+   * @param keyName       имя ключа
+   * @param defaultValue  значение по-умолчанию
+   * @return значение ключа (логическое)
+   */
+  private static boolean getInfo(String keyName, boolean defaultValue)
   {
-    String[] sar;
-    int result = 0;
-    try {
-      sar = str.split(":", 3);
-      int ih = Integer.parseInt(sar[0]);
-      int im = Integer.parseInt(sar[1]);
-      int is = Integer.parseInt(sar[2]);
-      result = ih * 3600 + im * 60 + is;
-    } catch (Exception e) {
-      //e.printStackTrace();
-      result = -1;
+    String val = getInfo(keyName, ""+defaultValue);
+    return val.compareToIgnoreCase("true") == 0;
+  }
+
+  /**
+   * Получить из таблицы _Info значение ключа, а если таблицы или ключа нет, то вернуть значение по-умолчанию
+   * CREATE TABLE _Info(key text PRIMARY KEY, val text)
+   * @param keyName       имя ключа
+   * @param defaultValue  значение по-умолчанию
+   * @return значение ключа (строка)
+   */
+  private static String getInfo(String keyName, String defaultValue)
+  {
+    String val = db.Dlookup("SELECT val FROM _Info WHERE key='" + keyName + "'");
+    if(val == null || val.length() < 1) {
+      return defaultValue;
     }
-    return result;
+    return val;
   }
-*/
 
-  /*
-
-   */
-
-  static void openDb()
+  private static void openDb()
   {
     final String create_tables =
-
         "CREATE TABLE _Info(key VARCHAR(32) primary key, val VARCHAR(255));" +
         "create table Tasks" +
         "(" +
@@ -385,12 +183,10 @@ public class R {
         "INSERT INTO _Info(key,val) VALUES('HoursTasksBack',''); " +
         "INSERT INTO _Info(key,val) VALUES('DeltaLoad',''); " +
         "INSERT INTO _Info(key,val) VALUES('TasksTTL',''); " +
-        "INSERT INTO _Info(key,val) VALUES('LogRecordTTL',''); " +
         "INSERT INTO _Info(key,val) VALUES('MAILDEBUG',''); " +
         "";
     if(db == null) {
       db = new DatabaseSqlite(WorkDB);
-      //
       String str = db.Dlookup("SELECT COUNT(*) FROM _Info;");
       if (str == null) {
         // ошибка чтения из БД - создадим таблицу
@@ -401,6 +197,9 @@ public class R {
     }
   }
 
+  /**
+   * Закрыть БД
+   */
   static void closeDb()
   {
     if(db != null) {

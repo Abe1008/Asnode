@@ -4,7 +4,7 @@
  */
 /*
  * Пишем лог изменений в Tasks
- * Пишем таблицу задач проверки Tasks и накапливание этой информации в течении LogRecordTTL дней (по-умолчанию 180)
+ * Пишем таблицу задач проверки Tasks и накапливание этой информации в течении LogRecordTTL часов
  *
  */
 
@@ -25,9 +25,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-public class MyLog
+class MyLog
 {
-  Database  db;
+  private Database  db;
 
   MyLog(Database db)
   {
@@ -47,7 +47,7 @@ public class MyLog
     // запишем лог задач
     String fieldsCompare = "id_task,status";    // поля сравнения
     String fieldsCopy = "id_task,status,flag";  // список полей для копирования
-    writeChangeLog("TasksLog", fieldsCompare, fieldsCopy, "Tasks", "id_task", R.LogRecordTTL);
+    writeChangeLog("TasksLog", fieldsCompare, fieldsCopy, "Tasks", "id_task", R.TasksTTL+24);
     //
     // если есть новая запись задачи, у которой нет флага 0,
     // т.е только что, добавленная запись .
@@ -56,7 +56,6 @@ public class MyLog
     a = db.ExecSql(sql);
     // ------------------------------------------------------------
     // список завершившихся задач
-    System.out.println("-----------------------------");
     sql = "SELECT l.id_task,agent_name,ts_start,ts_stop,result,l.status " +
           "FROM TasksLog as l LEFT JOIN Tasks ON l.id_task=Tasks.id_task " +
           "WHERE l.flag2=2 AND l.status!='RUNNING'";
@@ -65,23 +64,33 @@ public class MyLog
     for(String[] r: arr) {
       //r[0] номер завершившаяся задачи
       System.out.print("Задача " + r[0] + " " + r[5] + "  ");
-      cnt += sendMail(r[0],r[1],r[2],r[3],r[4],r[5]);
+      a = sendMail(r[0],r[1],r[2],r[3],r[4],r[5]);
+      cnt += a;
     }
-    System.out.println("-------- отправлено писем: " + cnt);
+    System.out.println("отправлено писем: " + cnt);
   }
 
+  /**
+   * отправка почты
+   * @param id_task     код задачи
+   * @param agent_name  имя агента
+   * @param ts_start    время старта задачи
+   * @param ts_stop     время остановки задачи
+   * @param result      результат
+   * @param status      статус
+   * @return  0 - письмо не отправили, 1 - отправили
+   */
   private int sendMail(String id_task,String agent_name, String ts_start, String ts_stop,
                         String result, String status)
   {
-     String msg = "" +
+     String msg =
          "Агент: " + agent_name + ".\r\n" +
          "Задача: " + id_task + ".\r\n" +
          "Старт: " + ts_start + ".\r\n" +
          "Завершено: " + ts_stop + ".\r\n" +
          "Результат: \"" + result + "\".\r\n" +
-         "Статус: \"" + status + "\".\r\n" +
-         "\r\n" + R.MsgSignature +
-         "\r\n";
+         "Статус: \"" + status + "\".\r\n \r\n" +
+         R.MsgSignature + "\r\n";
      String b;
      MailSend ms = new MailSend();
      b = ms.mailSend(R.EmailTo, "Завершение задачи проверки " + agent_name, msg, null);
