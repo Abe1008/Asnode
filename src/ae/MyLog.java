@@ -10,6 +10,14 @@
 
 /*
 
+create table TasksLog (
+  dat     DATETIME,
+  id_task int,
+  status  varchar(255),
+  flag    int default 0,
+  flag2   int
+);
+
  */
 package ae;
 
@@ -48,20 +56,21 @@ public class MyLog
     a = db.ExecSql(sql);
     // ------------------------------------------------------------
     // список завершившихся задач
-    System.out.println("---------------------------------");
+    System.out.println("-----------------------------");
     sql = "SELECT l.id_task,agent_name,ts_start,ts_stop,result,l.status " +
           "FROM TasksLog as l LEFT JOIN Tasks ON l.id_task=Tasks.id_task " +
           "WHERE l.flag2=2 AND l.status!='RUNNING'";
     ArrayList<String[]> arr = db.DlookupArray(sql);
+    int cnt = 0;
     for(String[] r: arr) {
       //r[0] номер завершившаяся задачи
       System.out.print("Задача " + r[0] + " " + r[5] + "  ");
-      sendMail(r[0],r[1],r[2],r[3],r[4],r[5]);
+      cnt += sendMail(r[0],r[1],r[2],r[3],r[4],r[5]);
     }
-    System.out.println("---------------------------------");
+    System.out.println("-------- отправлено писем: " + cnt);
   }
 
-  private void sendMail(String id_task,String agent_name, String ts_start, String ts_stop,
+  private int sendMail(String id_task,String agent_name, String ts_start, String ts_stop,
                         String result, String status)
   {
      String msg = "" +
@@ -76,11 +85,12 @@ public class MyLog
      String b;
      MailSend ms = new MailSend();
      b = ms.mailSend(R.EmailTo, "Завершение задачи проверки " + agent_name, msg, null);
-     if(b != null) {
-       System.out.println("Письмо отправлено: " + R.EmailTo);
-     } else {
+     if(b == null) {
        System.out.println("Ошибка отправки почты.");
+       return 0;
      }
+    System.out.println("Письмо отправлено: " + R.EmailTo);
+    return 1;
   }
 
   /**
@@ -97,7 +107,7 @@ public class MyLog
    * @param fieldsCopy      список полей для копирования
    * @param checkTab        проверяемая таблица (например, Lens)
    * @param keyField        ключевое поле (например, node_id)
-   * @param ttl             время жизни записи в таблице лога, дни
+   * @param ttl             время жизни записи в таблице лога, часы
    */
   private void writeChangeLog(String tab, String fieldsCompare, String fieldsCopy,
                                      String checkTab, String keyField, int ttl)

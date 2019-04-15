@@ -18,7 +18,7 @@ create table Tasks
   pass           INT,
   fail           INT,
   flag           INT       default 0,
-  wdat           TIMESTAMP default DATETIME('now', 'localtime')
+  wdat           TIMESTAMP default (DATETIME('now', 'localtime'))
 );
 
  */
@@ -40,7 +40,7 @@ class LoadTasks extends LoadData
     int     cnt = 0;
     int     a, c;
     String  sql;
-    // найдем и пометим устаревшие задачи
+    // найдем и пометим устаревшие задачи TasksTTL часы
     sql = "UPDATE Tasks Set flag = 1 WHERE " +
         "(strftime('%s','now','localtime')-strftime('%s', ts_create)) > 3600*" + R.TasksTTL;
     a = f_db.ExecSql(sql);

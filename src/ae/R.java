@@ -19,16 +19,14 @@ import java.util.Date;
 */
 /*
 Modify:
-
 12.04.19 отсылаем письма используя только библ. mailx, убрал apache mail
 
 */
 
 public class R {
-  final static String Ver = "Ver. 1.3 14.04.2019"; // номер версии
+  final static String Ver = "Ver. 1.6 15.04.2019"; // номер версии
 
   // рабочая БД
-  //public static String  WorkDB = "C:/tmp/asrevizor.db";
   static String WorkDB = "tasklog.db";   // /var/Gmir/ CentOs Linux (в Windows будет D:\var\Gmir\)
   static Database  db;
 
@@ -37,9 +35,9 @@ public class R {
   // временной интервал одного запроса
   static int    DeltaLoad       = 72;     // часы
   // время жизни записи в таблице лога, если ее флаг 0
-  static int    LogRecordTTL = 180;   // дни
+  static int    LogRecordTTL    = 31*24;   // часы
   // время жизни записей о задачах
-  static int    TasksTTL  = 90;        // дни
+  static int    TasksTTL        = 30*24;   // часы
   // названия запланированных задач (2 и более символа), по которым будем загружать результаты (cписок через запятую)
   static String MetaTasks = _r.metatask;
   // номера отслеживаемых нод
@@ -80,19 +78,19 @@ public class R {
     // прочитать из БД значения часов выдержки
     R.HoursTasksBack  = R.getInfo( "HoursTasksBack",  R.HoursTasksBack);  // период (часов назад), за которое считываем задачи
     R.DeltaLoad       = R.getInfo( "DeltaLoad",       R.DeltaLoad);       // временной интервал 1 запроса (часов назад), за которое считываем задачи
-    R.MetaTasks       = R.getInfo( "MetaTasks",       R.MetaTasks);        // список мета-задач, которые будем смчитывать
-    R.ProxyServer     = R.getInfo( "ProxyServer",     R.ProxyServer);      // прокси сервер
-    R.ProxyPort       = R.getInfo( "ProxyPort",       R.ProxyPort);        // прокси порт
-    R.ProxyUser       = R.getInfo( "ProxyUser",       R.ProxyUser);        // прокси пользователь
-    R.ProxyPass       = R.getInfo( "ProxyPass",       R.ProxyPass);        // прокси пароль
-    R.SiteUsr         = R.getInfo( "SiteUsr",         R.SiteUsr);          // пользователь на сайте
-    R.SitePwd         = R.getInfo( "SitePwd",         R.SitePwd);          // пароль на сайте
-    R.TimeOut         = R.getInfo( "TimeOut",         R.TimeOut);          // тайм-аут (мс)
-    R.LogRecordTTL    = R.getInfo( "LogRecordTTL",    R.LogRecordTTL);     // время хранения записей в логах MySql (ч)
-    R.TasksTTL        = R.getInfo( "TasksTTL",        R.TasksTTL);         // время жизни записей о задачах (дни)
+    R.MetaTasks       = R.getInfo( "MetaTasks",       R.MetaTasks);       // список мета-задач, которые будем смчитывать
+    R.ProxyServer     = R.getInfo( "ProxyServer",     R.ProxyServer);     // прокси сервер
+    R.ProxyPort       = R.getInfo( "ProxyPort",       R.ProxyPort);       // прокси порт
+    R.ProxyUser       = R.getInfo( "ProxyUser",       R.ProxyUser);       // прокси пользователь
+    R.ProxyPass       = R.getInfo( "ProxyPass",       R.ProxyPass);       // прокси пароль
+    R.SiteUsr         = R.getInfo( "SiteUsr",         R.SiteUsr);         // пользователь на сайте
+    R.SitePwd         = R.getInfo( "SitePwd",         R.SitePwd);         // пароль на сайте
+    R.TimeOut         = R.getInfo( "TimeOut",         R.TimeOut);         // тайм-аут (мс)
+    R.LogRecordTTL    = R.getInfo( "LogRecordTTL",    R.LogRecordTTL);    // время хранения записей в логах MySql (ч)
+    R.TasksTTL        = R.getInfo( "TasksTTL",        R.TasksTTL);        // время жизни записей о задачах (дни)
     R.Nodes           = R.getInfo( "Nodes",           R.Nodes);           // номер(а) отслеживаемых нод
-    R.EmailTo         = R.getInfo( "EmailTo",         R.EmailTo);       // адрес отправки сообщения
-    R.SmtpMailCC      = R.getInfo( "SmtpMailCC",      R.SmtpMailCC);       // кому отсылать копии
+    R.EmailTo         = R.getInfo( "EmailTo",         R.EmailTo);         // адрес отправки сообщения
+    R.SmtpMailCC      = R.getInfo( "SmtpMailCC",      R.SmtpMailCC);      // кому отсылать копии
     //
     String str        = R.getInfo( "MAILDEBUG",       ""+R.MAILDEBUG);       // отладка почтового сообщения
     R.MAILDEBUG = str.contentEquals("true");
@@ -100,22 +98,13 @@ public class R {
     // System.out.println("HoursNotOnLine  = " + R.HoursNotOnLine);
     // System.out.println("HoursAfterEmail = " + R.HoursAfterEmail);
     // System.out.println("HoursExpLens    = " + R.HoursExpLens);
-    // System.out.println("HoursTasksBack  = " + R.HoursTasksBack);
-    // System.out.println("HoursExpTasks   = " + R.HoursExpTasks);
     // System.out.println("TaskQuestDelay  = " + R.TaskQuestDelay);
     // System.out.println("TaskFail        = " + R.TaskFail);
-    System.out.println("MetaTasks   = " + R.MetaTasks);
-    System.out.println("Nodes       = " + R.Nodes);
-    System.out.println("EmailTo     = " + R.EmailTo);
-    System.out.println("SmtpMailCC  = " + R.SmtpMailCC);
-    System.out.println("HoursTasksBack = " + R.HoursTasksBack);
-    System.out.println("DeltaLoad      = " + R.DeltaLoad);
-    //System.out.println("ProxyServer     = " + R.ProxyServer);
-    // System.out.println("ProxyPort       = " + R.ProxyPort);
+    System.out.println("MetaTasks: " + R.MetaTasks + "    Nodes: " + R.Nodes);
+    System.out.println("EmailTo: " + R.EmailTo +   "    SmtpMailCC: " + R.SmtpMailCC);
+    System.out.println("HoursTasksBack(ч): " + R.HoursTasksBack + "    DeltaLoad(ч): " + R.DeltaLoad);
+    System.out.println("TasksTTL(ч): " + R.TasksTTL +       "    LogRecordTTL(ч): " + R.LogRecordTTL);
     // System.out.println("TimeOut (ms)    = " + R.TimeOut);
-    //
-    //LogRecordTTL
-    //
   }
 
   /**
