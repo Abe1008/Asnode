@@ -24,7 +24,7 @@ import java.util.Properties;
  * https://javaee.github.io/javamail/
  */
 
-public class MailSend {
+class MailSend {
   private final String mail_from        = R.SmtpSender;
   private final String smtp_server_adr  = R.SmtpServer;
   private final int    smtp_server_port = R.SmtpServerPort;
@@ -39,7 +39,7 @@ public class MailSend {
    * @param message               сообщение
    * @param fileNameAttachment    имя файла вложения (может быть null)
    */
-  public String mailSend(String adrEmail, String subject, String message, String fileNameAttachment)
+  String mailSend(String adrEmail, String subject, String message, String fileNameAttachment)
   {
     LocalDateTime dt = LocalDateTime.now();
     String sDat = dt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
@@ -79,7 +79,7 @@ public class MailSend {
       }
       if(addr_cc != null) {
         InternetAddress[] address = str2iadr(addr_cc);
-        msg.setRecipients(Message.RecipientType.CC, address);
+        msg.setRecipients(Message.RecipientType.BCC, address);
       }
       msg.setSubject(subject, StandardCharsets.UTF_8.name());
       //msg.setText(txtmsg);
