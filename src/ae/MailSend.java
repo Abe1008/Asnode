@@ -30,7 +30,7 @@ public class MailSend {
   private final int    smtp_server_port = R.SmtpServerPort;
   private final String smtp_server_user = R.SmtpServerUser; // имя пользовтаеля для регистрации на почтовом сервере
   private final String smtp_server_pwd  = R.SmtpServerPwd;   // пароль для почтового сервера
-  private final String addr_cc          = R.SmtpMailCC;  // адрес копии
+  private final String addr_cc          = R.MailCC;  // адрес копии
 
   /**
    * Отправка почтового сообщения на адрес SmtpMailTo и если указан SmtpMailСС

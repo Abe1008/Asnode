@@ -83,12 +83,13 @@ class MyLog
   private int sendMail(String id_task,String agent_name, String ts_start, String ts_stop,
                         String result, String status)
   {
+    String res = (result == null)? "-": result;
      String msg =
          "Агент: " + agent_name + ".\r\n" +
          "Задача: " + id_task + ".\r\n" +
          "Старт: " + ts_start + ".\r\n" +
          "Завершено: " + ts_stop + ".\r\n" +
-         "Результат: \"" + result + "\".\r\n" +
+         "Результат: " + res + ".\r\n" +
          "Статус: \"" + status + "\".\r\n \r\n" +
          R.MsgSignature + "\r\n";
      String b;

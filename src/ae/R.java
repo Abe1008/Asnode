@@ -18,7 +18,7 @@ Modify:
 */
 
 class R {
-  final static String Ver = "Ver. 1.7 15.04.2019"; // номер версии
+  final static String Ver = "Ver. 1.9 16.04.2019"; // номер версии
 
   // рабочая БД
   static String WorkDB = "tasklog.db";   // /var/Gmir/ CentOs Linux (в Windows будет D:\var\Gmir\)
@@ -34,8 +34,6 @@ class R {
   static String MetaTasks = _r.metatask;
   // номера отслеживаемых нод
   static String Nodes     = _r.nodes;
-  // адрес отправки сообщения
-  static String EmailTo = _r.emailto;
 
   // final static String sep = System.getProperty("file.separator"); // разделитель имени каталогов
   static String ProxyServer = _r.proxyserv;  // proxy сервер
@@ -48,12 +46,14 @@ class R {
   static String SitePwd     = _r.sitepwd;  // пароль на сайт
   //
   // почтовые дела
+  // адрес отправки сообщения (можно несколько с разделением по ;)
+  static String EmailTo = _r.emailto;
   // адрес получателя почты (можно несколько с разделением по ;)
-  static String SmtpMailCC     = _r.smtpmailcc;          // адрес получателя копии почты
+  static String MailCC  = _r.mailcc;          // адрес получателя копии почты
 
+  static String SmtpSender     = _r.smtpsender;       // адрес отправителя почты
   static String SmtpServer     = _r.smtpserver;       // адрес почтового сервера
   static int    SmtpServerPort = _r.smtpserverport;   // порт почтового сервера
-  static String SmtpSender     = _r.smtpsender;       // адрес отправителя почты
   static String SmtpServerUser = _r.smtpserveruser;   // имя пользователя почтового сервера
   static String SmtpServerPwd  = _r.smtpserverpwd;    // пароль пользователя почтового сервера
   // подпись в письме
@@ -81,11 +81,11 @@ class R {
     R.TasksTTL        = R.getInfo( "TasksTTL",        R.TasksTTL);        // время жизни записей о задачах (дни)
     R.Nodes           = R.getInfo( "Nodes",           R.Nodes);           // номер(а) отслеживаемых нод
     R.EmailTo         = R.getInfo( "EmailTo",         R.EmailTo);         // адрес отправки сообщения
-    R.SmtpMailCC      = R.getInfo( "SmtpMailCC",      R.SmtpMailCC);      // кому отсылать копии
+    R.MailCC          = R.getInfo( "MailCC",          R.MailCC);          // кому отсылать копии
     R.MAILDEBUG       = R.getInfo( "MAILDEBUG",       R.MAILDEBUG);       // отладка почтового сообщения
 
     System.out.println("MetaTasks: " + R.MetaTasks + "   Nodes: " + R.Nodes);
-    System.out.println("EmailTo: " + R.EmailTo +   "   SmtpMailCC: " + R.SmtpMailCC);
+    System.out.println("EmailTo: " + R.EmailTo +   "   MailCC: " + R.MailCC);
     System.out.println("HoursTasksBack(ч): " + R.HoursTasksBack +
                         "   DeltaLoad(ч): " + R.DeltaLoad +
                         "   TasksTTL(ч): " + R.TasksTTL);
@@ -149,42 +149,47 @@ class R {
   private static void openDb()
   {
     final String create_tables =
-        "CREATE TABLE _Info(key VARCHAR(32) primary key, val VARCHAR(255));" +
-        "create table Tasks" +
-        "(" +
-        "id_task        INT primary key," +
-        "id_task_meta   INT," +
-        "name_task_meta VARCHAR(255)," +
-        "node_id        INT," +
-        "agent_name     VARCHAR(255)," +
-        "result         VARCHAR(255)," +
-        "ts_create      DATETIME," +
-        "ts_start       DATETIME," +
-        "ts_stop        DATETIME," +
-        "status         VARCHAR(255)," +
-        "pass           INT," +
-        "fail           INT," +
-        "flag           INT default 0," +
-        "wdat           TIMESTAMP default (DATETIME('now', 'localtime'))" +
+        "CREATE TABLE _Info (" +
+          "key VARCHAR(32) primary key, " +
+          "val VARCHAR(255) default '' " +
+        ");" +
+
+        "create table Tasks (" +
+          "id_task        INT primary key," +
+          "id_task_meta   INT," +
+          "name_task_meta VARCHAR(255)," +
+          "node_id        INT," +
+          "agent_name     VARCHAR(255)," +
+          "result         VARCHAR(255)," +
+          "ts_create      DATETIME," +
+          "ts_start       DATETIME," +
+          "ts_stop        DATETIME," +
+          "status         VARCHAR(255)," +
+          "pass           INT," +
+          "fail           INT," +
+          "flag           INT default 0," +
+          "wdat           TIMESTAMP default (DATETIME('now', 'localtime'))" +
         ");" +
 
         "create table TasksLog (" +
-        "dat DATETIME," +
-        "id_task int," +
-        "status varchar(255)," +
-        "flag  int default 0," +
-        "flag2 int" +
+          "dat    DATETIME," +
+          "id_task int," +
+          "status varchar(255)," +
+          "flag   int default 0," +
+          "flag2  int" +
         ");" +
 
-        "INSERT INTO _Info(key,val) VALUES('EmailTo',''); " +
-        "INSERT INTO _Info(key,val) VALUES('MetaTasks',''); " +
-        "INSERT INTO _Info(key,val) VALUES('Nodes',''); " +
-        "INSERT INTO _Info(key,val) VALUES('SmtpMailCC',''); " +
-        "INSERT INTO _Info(key,val) VALUES('HoursTasksBack',''); " +
-        "INSERT INTO _Info(key,val) VALUES('DeltaLoad',''); " +
-        "INSERT INTO _Info(key,val) VALUES('TasksTTL',''); " +
-        "INSERT INTO _Info(key,val) VALUES('MAILDEBUG',''); " +
+        "INSERT INTO _Info(key) VALUES('EmailTo'); " +
+        "INSERT INTO _Info(key) VALUES('MetaTasks'); " +
+        "INSERT INTO _Info(key) VALUES('Nodes'); " +
+        "INSERT INTO _Info(key) VALUES('MailCC'); " +
+        "INSERT INTO _Info(key) VALUES('HoursTasksBack'); " +
+        "INSERT INTO _Info(key) VALUES('DeltaLoad'); " +
+        "INSERT INTO _Info(key) VALUES('TasksTTL'); " +
+        "INSERT INTO _Info(key) VALUES('MAILDEBUG'); " +
+
         "";
+
     if(db == null) {
       db = new DatabaseSqlite(WorkDB);
       String str = db.Dlookup("SELECT COUNT(*) FROM _Info;");
