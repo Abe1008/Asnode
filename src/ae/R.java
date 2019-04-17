@@ -18,7 +18,7 @@ Modify:
 */
 
 class R {
-  final static String Ver = "Ver. 1.9 16.04.2019"; // номер версии
+  final static String Ver = "Ver. 1.10 17.04.2019"; // номер версии
 
   // рабочая БД
   static String WorkDB = "tasklog.db";   // /var/Gmir/ CentOs Linux (в Windows будет D:\var\Gmir\)

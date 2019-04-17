@@ -80,11 +80,12 @@ class MyLog
    * @param status      статус
    * @return  0 - письмо не отправили, 1 - отправили
    */
-  private int sendMail(String id_task,String agent_name, String ts_start, String ts_stop,
+  private int sendMail(String id_task, String agent_name, String ts_start, String ts_stop,
                         String result, String status)
   {
     String res = (result == null)? "-": result;
-     String msg =
+    String sbj = "Завершение задачи проверки " + agent_name + " (" + status + ")";
+    String msg =
          "Агент: " + agent_name + ".\r\n" +
          "Задача: " + id_task + ".\r\n" +
          "Старт: " + ts_start + ".\r\n" +
@@ -92,13 +93,14 @@ class MyLog
          "Результат: " + res + ".\r\n" +
          "Статус: \"" + status + "\".\r\n \r\n" +
          R.MsgSignature + "\r\n";
-     String b;
-     MailSend ms = new MailSend();
-     b = ms.mailSend(R.EmailTo, "Завершение задачи проверки " + agent_name, msg, null);
-     if(b == null) {
-       System.out.println("Ошибка отправки почты.");
-       return 0;
-     }
+
+    String b;
+    MailSend ms = new MailSend();
+    b = ms.mailSend(R.EmailTo, sbj, msg, null);
+    if(b == null) {
+     System.out.println("Ошибка отправки почты.");
+     return 0;
+    }
     System.out.println("Письмо отправлено: " + R.EmailTo);
     return 1;
   }
