@@ -25,13 +25,9 @@ public class Main {
     System.out.println("Отслеживаем задачи ноды из АС Ревизор. " + R.Ver );
     //
     // первый аргумент: имя файла БД
-    // второй аргумент: [nnn[,mmm]] номер(а) ноды
     if(args.length > 0) {
       // задан файл рабочей базы данных
       R.WorkDB = args[0];
-      if(args.length >1) {
-        R.Nodes = args[1]; // номера нод
-      }
     }
     //
     System.out.println("База данных: " + WorkDB);

@@ -14,11 +14,12 @@ package ae;
 Modify:
 12.04.19 отсылаем письма используя только библ. mailx, убрал apache mail
 15.04.19 время жизни задач TasksTTL ч, а у журнал TasksLog На 24 ч больше
+15.05.19 в таблицу agenda пишем email куда писать и ноды за которыми следить
 
 */
 
 class R {
-  final static String Ver = "Ver. 1.10 17.04.2019"; // номер версии
+  final static String Ver = "Ver. 1.2 15.05.2019"; // номер версии
 
   // рабочая БД
   static String WorkDB = "tasklog.db";   // /var/Gmir/ CentOs Linux (в Windows будет D:\var\Gmir\)
@@ -32,8 +33,6 @@ class R {
   static int    TasksTTL        = 30*24;   // часы
   // названия запланированных задач (2 и более символа), по которым будем загружать результаты (cписок через запятую)
   static String MetaTasks = _r.metatask;
-  // номера отслеживаемых нод
-  static String Nodes     = _r.nodes;
 
   // final static String sep = System.getProperty("file.separator"); // разделитель имени каталогов
   static String ProxyServer = _r.proxyserv;  // proxy сервер
@@ -46,8 +45,6 @@ class R {
   static String SitePwd     = _r.sitepwd;  // пароль на сайт
   //
   // почтовые дела
-  // адрес отправки сообщения (можно несколько с разделением по ;)
-  static String EmailTo = _r.emailto;
   // адрес получателя почты (можно несколько с разделением по ;)
   static String MailCC  = _r.mailcc;          // адрес получателя копии почты
 
@@ -79,13 +76,13 @@ class R {
     R.SitePwd         = R.getInfo( "SitePwd",         R.SitePwd);         // пароль на сайте
     R.TimeOut         = R.getInfo( "TimeOut",         R.TimeOut);         // тайм-аут (мс)
     R.TasksTTL        = R.getInfo( "TasksTTL",        R.TasksTTL);        // время жизни записей о задачах (дни)
-    R.Nodes           = R.getInfo( "Nodes",           R.Nodes);           // номер(а) отслеживаемых нод
-    R.EmailTo         = R.getInfo( "EmailTo",         R.EmailTo);         // адрес отправки сообщения
+
+
     R.MailCC          = R.getInfo( "MailCC",          R.MailCC);          // кому отсылать копии
     R.MAILDEBUG       = R.getInfo( "MAILDEBUG",       R.MAILDEBUG);       // отладка почтового сообщения
 
-    System.out.println("MetaTasks: " + R.MetaTasks + "   Nodes: " + R.Nodes);
-    System.out.println("EmailTo: " + R.EmailTo +   "   MailCC: " + R.MailCC);
+    System.out.println("MetaTasks: " + R.MetaTasks);
+    System.out.println("MailCC: " + R.MailCC);
     System.out.println("HoursTasksBack(ч): " + R.HoursTasksBack +
                         "   DeltaLoad(ч): " + R.DeltaLoad +
                         "   TasksTTL(ч): " + R.TasksTTL);
@@ -154,6 +151,13 @@ class R {
           "val VARCHAR(255) default '' " +
         ");" +
 
+        "CREATE TABLE agenda (" +
+          "email VARCHAR (255) DEFAULT ('@')," +
+          "nodes VARCHAR (255) DEFAULT ('1')," +
+          "prim  VARCHAR (255) DEFAULT (' ')," +
+          "pk    INTEGER       PRIMARY KEY AUTOINCREMENT" +
+        ");" +
+
         "create table Tasks (" +
           "id_task        INT primary key," +
           "id_task_meta   INT," +
@@ -172,16 +176,14 @@ class R {
         ");" +
 
         "create table TasksLog (" +
-          "dat    DATETIME," +
+          "dat     DATETIME," +
           "id_task int," +
-          "status varchar(255)," +
-          "flag   int default 0," +
-          "flag2  int" +
+          "status  varchar(255)," +
+          "flag    int default 0," +
+          "flag2   int" +
         ");" +
 
-        "INSERT INTO _Info(key) VALUES('EmailTo'); " +
         "INSERT INTO _Info(key) VALUES('MetaTasks'); " +
-        "INSERT INTO _Info(key) VALUES('Nodes'); " +
         "INSERT INTO _Info(key) VALUES('MailCC'); " +
         "INSERT INTO _Info(key) VALUES('HoursTasksBack'); " +
         "INSERT INTO _Info(key) VALUES('DeltaLoad'); " +

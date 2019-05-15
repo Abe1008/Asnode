@@ -22,16 +22,17 @@ create table TasksLog (
 package ae;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.*;
 
 class MyLog
 {
-  private Database  db;
+  private Database f_db;
+  private Map<Integer,String> mapNodeEmails;  // арта нода - эл.адреса
 
   MyLog(Database db)
   {
-    this.db = db;
+    this.f_db = db;
+    mapNodeEmails = makeNodeEmails(); // сделать карту соотьветствия
   }
 
   void work()
@@ -43,7 +44,7 @@ class MyLog
     //
     // обнулим flag2 - флаг последней вставки
     sql = "UPDATE TasksLog SET flag2=0 WHERE flag2!=0";
-    a = db.ExecSql(sql);
+    a = f_db.ExecSql(sql);
     // запишем лог задач
     String fieldsCompare = "id_task,status";    // поля сравнения
     String fieldsCopy = "id_task,status,flag";  // список полей для копирования
@@ -53,18 +54,25 @@ class MyLog
     // т.е только что, добавленная запись .
     sql = "UPDATE TasksLog SET flag2=0 WHERE flag2!=0 AND " +
         "id_task NOT IN (SELECT id_task FROM TasksLog WHERE flag=0)";
-    a = db.ExecSql(sql);
+    a = f_db.ExecSql(sql);
     // ------------------------------------------------------------
     // список завершившихся задач
-    sql = "SELECT l.id_task,agent_name,ts_start,ts_stop,result,l.status " +
-          "FROM TasksLog as l LEFT JOIN Tasks ON l.id_task=Tasks.id_task " +
-          "WHERE l.flag2=2 AND l.status!='RUNNING'";
-    ArrayList<String[]> arr = db.DlookupArray(sql);
+    sql = "SELECT " +
+            "l.id_task," +
+            "node_id," +
+            "agent_name," +
+            "ts_start," +
+            "ts_stop," +
+            "result," +
+            "l.status " +
+        "FROM TasksLog as l LEFT JOIN Tasks ON l.id_task=Tasks.id_task " +
+        "WHERE l.flag2=2 AND l.status!='RUNNING'";
+    ArrayList<String[]> arr = f_db.DlookupArray(sql);
     int cnt = 0;
     for(String[] r: arr) {
       //r[0] номер завершившаяся задачи
-      System.out.print("Задача " + r[0] + " " + r[5] + "  ");
-      a = sendMail(r[0],r[1],r[2],r[3],r[4],r[5]);
+      System.out.println("Задача " + r[0] + " " + r[6] + "  ");
+      a = sendMail(r[0],r[1],r[2],r[3],r[4],r[5],r[6]);
       cnt += a;
     }
     System.out.println("отправлено писем: " + cnt);
@@ -73,6 +81,7 @@ class MyLog
   /**
    * отправка почты
    * @param id_task     код задачи
+   * @param node_id     код ноды
    * @param agent_name  имя агента
    * @param ts_start    время старта задачи
    * @param ts_stop     время остановки задачи
@@ -80,7 +89,7 @@ class MyLog
    * @param status      статус
    * @return  0 - письмо не отправили, 1 - отправили
    */
-  private int sendMail(String id_task, String agent_name, String ts_start, String ts_stop,
+  private int sendMail(String id_task, String node_id, String agent_name, String ts_start, String ts_stop,
                         String result, String status)
   {
     String res = (result == null)? "-": result;
@@ -94,14 +103,23 @@ class MyLog
          "Статус: \"" + status + "\".\r\n \r\n" +
          R.MsgSignature + "\r\n";
 
+    // по ноде найдем нужые адреса
+    String  email;
+    try {
+      Integer ni = Integer.parseInt(node_id);
+      email = this.mapNodeEmails.get(ni);     // по номеру ноды найдем строку с адресами
+    } catch (NumberFormatException e) {
+      System.err.println("Номер ноды не число: " + node_id);
+      return 0;
+    }
     String b;
     MailSend ms = new MailSend();
-    b = ms.mailSend(R.EmailTo, sbj, msg, null);
+    b = ms.mailSend(email, sbj, msg, null);
     if(b == null) {
-     System.out.println("Ошибка отправки почты.");
+     System.err.println("Ошибка отправки почты.");
      return 0;
     }
-    System.out.println("Письмо отправлено: " + R.EmailTo);
+    System.out.println("Письмо отправлено: " + 1 /*R.EmailTo*/);
     return 1;
   }
 
@@ -135,41 +153,41 @@ class MyLog
     // найдем в таблице лога удаленные агенты, у них поставим флаг -1
     sql = "UPDATE "+tab+" SET flag=-1 WHERE flag=1 AND "+
         keyField+" NOT IN (SELECT "+keyField+" FROM "+checkTab+")";
-    a = db.ExecSql(sql);
+    a = f_db.ExecSql(sql);
     //--------------------------------------------------
     System.out.println(tab + "] удалено: " + a);
     //--------------------------------------------------
     // подготовим флаги в Lens
-    a = db.ExecSql("UPDATE " + checkTab + " SET flag=0 WHERE flag!=0");
+    a = f_db.ExecSql("UPDATE " + checkTab + " SET flag=0 WHERE flag!=0");
     // найдем новые и измененные агенты и пометим их флагом 2
     // сливаем содержимое полей, чтобы сравнивать, поля с NULL в слиянии пропадают
     concat = strconcat(fieldsCompare) ;  //"CONCAT_WS('_'," + fieldsCompare + ")"; // слияние значений полей
     // пометим флагом 2 изменившиеся агенты в табл. Lens
     sql = "UPDATE "+checkTab+" SET flag=2 WHERE "+concat+" NOT IN " +
         "(SELECT "+concat+" FROM "+tab+" WHERE flag=1)";
-    a = db.ExecSql(sql);
+    a = f_db.ExecSql(sql);
     // скопируем все агенты у которых флаг 2
     sql = "INSERT INTO "+tab+"("+fieldsCopy+") SELECT "+fieldsCopy+" FROM "+checkTab+" WHERE flag=2";
-    a = db.ExecSql(sql);
+    a = f_db.ExecSql(sql);
     // переведем записи с флагом не 2 (т.е. не новые) в 0, если у агента есть еще запись с флагом 2
     // выбираем ид. по таблице Lens, т.к. MySql не дает исправлять ту же таблицу
     sql = "UPDATE " + tab + " SET flag=0 WHERE flag!=2 AND "
          +keyField+" IN (SELECT "+keyField+" FROM "+checkTab+" WHERE flag=2)";
-    a = db.ExecSql(sql);
+    a = f_db.ExecSql(sql);
     // текущее время компьютера
     str = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
     // установим тек. время у новых записей (flag=2), и установка флага в 1
     // заполним 2 в флаг2, т.е. флаг 2 у только, что добавленных записей
     // FLAG2
     sql = "UPDATE "+tab+" SET dat='"+str+"', flag=1, flag2=2 WHERE flag=2";
-    a = db.ExecSql(sql);
+    a = f_db.ExecSql(sql);
     //--------------------------------------------------
     System.out.println(tab + "] записано в  лог: " + a);
     //--------------------------------------------------
     // удалить старые записи лога, у которых flag=0
     sql = "DELETE FROM "+tab+" WHERE flag=0 AND " +
         "(strftime('%s','now','localtime')-strftime('%s', dat)) > 3600*" + ttl;
-    a = db.ExecSql(sql);
+    a = f_db.ExecSql(sql);
     //--------------------------------------------------
     System.out.println(tab + "] удалено  старых: " + a);
     //--------------------------------------------------
@@ -190,6 +208,79 @@ class MyLog
       un = "||'_'||";
     }
     return "(" + out + ")";
+  }
+
+  /**
+   * сделать таблицу email, соответствующих нодам
+   */
+  private Map<Integer,String>  makeNodeEmails()
+  {
+    ArrayList<String[]> arr  = f_db.DlookupArray("SELECT DISTINCT email,nodes FROM agenda");  // список всех нод
+    // набьем множество
+    Map<Integer,Set<String>>  map = new HashMap<>();
+    for(String[] rst: arr) {
+      String eml = rst[0]; // электронный адрес
+      ArrayList<Integer> ai = getNumNodes(rst[1]);  // массив номер нод
+      for (Integer i : ai) {
+        Set<String> as;
+        as = map.get(i);  //  есть ли уже массив
+        if (as == null) {
+          as = new HashSet<>(); // создадим пустой
+        }
+        as.add(eml);  // дополним набор электронным адресом
+        map.put(i, as); // заполняем карту для i массивом c эл.адресами
+      }
+    }
+    // теперь у нас есть набор номеров и соответствующих им массива адресов
+    // преобразуем его в карту номера - строки с эл. адресами
+    Map<Integer,String> mis = new HashMap<>();
+    // пройдемся по ключам
+    for(Integer i: map.keySet()) {
+      Set<String> as = map.get(i);
+      String emls = getStrEmails(as);
+      mis.put(i, emls); // будем добавлять в карту для последующего использования
+    }
+    return mis;
+  }
+
+
+  /**
+   * Выделить из строки массив номеров узлов
+   * @param str
+   * @return список-массив целых чисел
+   */
+  private ArrayList<Integer> getNumNodes(String str)
+  {
+    ArrayList<Integer> ai = new ArrayList<>();
+    String[] ss = str.split("[,;]");
+    for(String s: ss) {
+      String s1 = s.replaceAll("\\D","");
+      try {
+        Integer i = Integer.parseInt(s1);
+        ai.add(i);
+      } catch (NumberFormatException e) {
+        System.err.println("Неверный номер ноды: " + s);
+      }
+    }
+    return ai;
+  }
+
+  /**
+   * Соединим массив строк в одну строку с адресами, разделенными запятой
+   * @param astr  массив строк
+   * @return список-массив целых чисел
+   */
+  private String getStrEmails(Set<String> astr)
+  {
+    if(astr == null)
+      return "";
+    StringBuilder sb = new StringBuilder(256);
+    String sep = "";
+    for(String s: astr) {
+      sb.append(sep).append(s);
+      sep =",";
+    }
+    return sb.toString();
   }
 
 } // end class

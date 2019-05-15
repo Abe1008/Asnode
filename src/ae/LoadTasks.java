@@ -25,8 +25,7 @@ create table Tasks
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 class LoadTasks extends LoadData
 {
@@ -35,6 +34,10 @@ class LoadTasks extends LoadData
     super(db);
   }
 
+  /**
+   * Загрузка задач
+   * @return кол-во
+   */
   int load()
   {
     int     cnt = 0;
@@ -52,6 +55,10 @@ class LoadTasks extends LoadData
     sql = "DELETE FROM Tasks WHERE flag=1";
     a = f_db.ExecSql(sql);
     System.out.println("Удалено старых и выполняющихся задач: " + a);
+    //
+
+    String spisnodes = getSpisNodes();  // список в квадратных скобках
+    //
     // начало запрашиваемого интервала
     final LocalDateTime dt1 = LocalDateTime.now().minusHours(R.HoursTasksBack);
     // выбираем по строке мета-задачи
@@ -68,7 +75,7 @@ class LoadTasks extends LoadData
           R.sleep(900);
           System.out.print(dt.toString() + " ");
           if(d > i) d = i;
-          c = loadPart(s_meta, R.Nodes, dt, d);  // загрузить задачи под запланированную задачу
+          c = loadPart(s_meta, spisnodes, dt, d);  // загрузить задачи под запланированную задачу
           cnt += c;
           dt = dt.plusHours(d);   // сдвинемся вперед на di часов
         }
@@ -142,6 +149,44 @@ class LoadTasks extends LoadData
 //    }
 //    return l;
 //  }
+
+  /**
+   * Полкучить строку со списком требуемых нод
+   * @return строка нод в квадратных скобках
+   */
+  private String getSpisNodes()
+  {
+    HashSet<Integer>    set  = new HashSet<>();  // множество чисел
+    ArrayList<Integer>  iset = new ArrayList<>();
+    ArrayList<String[]> arr  = f_db.DlookupArray("SELECT nodes FROM agenda");  // список всех нод
+    // набьем множество
+    for(String[] rst: arr) {
+      String[] ss = rst[0].split("[,;]");
+      for(String s: ss) {
+        String s1 = s.replaceAll("\\D","");
+        try {
+          Integer i = Integer.parseInt(s1);
+          set.add(i);
+        } catch (NumberFormatException e) {
+          System.err.println("Неверный номер ноды: " + s);
+        }
+      }
+    }
+    for(Integer i: set) {
+      iset.add(i); // будем добавлять в массив для последующей сортировки
+    }
+    Collections.sort(iset); // сортировать
+    //
+    // перведем множество в строковый список
+    StringBuilder snodes = new StringBuilder();  // список отслеживаемых нод
+    String sep = "";
+    for(Integer i: iset) {
+      snodes.append(sep);
+      snodes.append(i); // добавим список нод
+      sep = ",";
+    }
+    return "[" + snodes + "]";
+  }
 
 } // end of class
 
