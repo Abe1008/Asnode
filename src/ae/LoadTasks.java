@@ -46,18 +46,20 @@ class LoadTasks extends LoadData
     // найдем и пометим устаревшие задачи TasksTTL часы
     sql = "UPDATE Tasks Set flag = 1 WHERE " +
         "(strftime('%s','now','localtime')-strftime('%s', ts_create)) > 3600*" + R.TasksTTL;
-    a = f_db.ExecSql(sql);
+    f_db.ExecSql(sql);
     // найдем и пометим задачи со статусом RUNNING
     sql = "UPDATE Tasks Set flag = 1 WHERE status='RUNNING'";
-    a = f_db.ExecSql(sql);
-    // System.out.println("Устаревших и выполняющихся задач: " + (a+b));
+    f_db.ExecSql(sql);
     // удалить из архива агенты с флагом 1
     sql = "DELETE FROM Tasks WHERE flag=1";
     a = f_db.ExecSql(sql);
     System.out.println("Удалено старых и выполняющихся задач: " + a);
     //
-
     String spisnodes = getSpisNodes();  // список в квадратных скобках
+    if (spisnodes == null) {
+      System.out.println("Не указаны ноды");
+      return 0;
+    }
     //
     // начало запрашиваемого интервала
     final LocalDateTime dt1 = LocalDateTime.now().minusHours(R.HoursTasksBack);
@@ -81,30 +83,6 @@ class LoadTasks extends LoadData
         }
       }
     }
-
-    /*
-    // выбираем по номеру мета-задачи
-    metastrs = R.MetaTasksID.replace(',',';').split(";");
-    for(String metas: metastrs) {
-      try {
-        int i_meta = Integer.parseInt(metas.trim());
-        if (i_meta > 0) {
-          // берем по частям
-          LocalDateTime dt = dt1;
-          System.out.println(i_meta + ">");
-          for (i = R.HoursTasksBack; i >= d; i -= d) {
-            R.sleep(1200);
-            System.out.print(dt.toString() + " ");
-            c = this.readTasks(i_meta, null, dt, d);  // загрузить задачи под запланированную задачу
-            cnt += c;
-            dt = dt.plusHours(d);   // сдвинемся вперед на d часов
-          }
-        }
-      } catch (NumberFormatException e) {
-        System.out.println("?-WARNING-номер мета-задачи не число: \"" + metas + "\"");
-      }
-      */
-
     return cnt;
   }
 
@@ -120,7 +98,7 @@ class LoadTasks extends LoadData
     DateTimeFormatter dtpat = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     String st1 = tstart.format(dtpat);
     String st2 = tstop.format(dtpat);
-
+    //
     Map<String,String> args = new HashMap<>();  // аргументы
     args.put("filter_ts_create_from", st1);
     args.put("filter_ts_create_to",   st2);
@@ -133,32 +111,14 @@ class LoadTasks extends LoadData
     return super.load(url, args, "results.data", j2s);
   }
 
-//  /**
-//   * Возращает время вставки последнего элемента в таблицу
-//   * @return время вставки UNIX epoch (сек)
-//   */
-//  public long  getLastItemTime()
-//  {
-//    String sql = "select strftime('%s', max(wdat), 'UTC') FROM Tasks";
-//    String dats = f_db.Dlookup(sql);
-//    long l;
-//    try {
-//      l = Long.parseLong(dats);
-//    } catch(NumberFormatException e) {
-//      l = 0;
-//    }
-//    return l;
-//  }
-
   /**
-   * Полкучить строку со списком требуемых нод
-   * @return строка нод в квадратных скобках
+   * Получить строку со списком требуемых нод
+   * @return строка нод в квадратных скобках или null если нет заданных нодов
    */
   private String getSpisNodes()
   {
-    HashSet<Integer>    set  = new HashSet<>();  // множество чисел
-    ArrayList<Integer>  iset = new ArrayList<>();
-    ArrayList<String[]> arr  = f_db.DlookupArray("SELECT nodes FROM agenda");  // список всех нод
+    HashSet<Integer>    set = new HashSet<>();  // множество чисел
+    ArrayList<String[]> arr = f_db.DlookupArray("SELECT nodes FROM agenda");  // список всех нод
     // набьем множество
     for(String[] rst: arr) {
       String[] ss = rst[0].split("[,;]");
@@ -172,17 +132,19 @@ class LoadTasks extends LoadData
         }
       }
     }
-    for(Integer i: set) {
-      iset.add(i); // будем добавлять в массив для последующей сортировки
-    }
+    // проверим, есть ли чего проверять?
+    if(set.size() < 1)
+      return null;
+    //
+    // добавим в массив для последующей сортировки
+    ArrayList<Integer> iset = new ArrayList<>(set);
     Collections.sort(iset); // сортировать
     //
-    // перведем множество в строковый список
+    // переведем множество в строковый список
     StringBuilder snodes = new StringBuilder();  // список отслеживаемых нод
     String sep = "";
     for(Integer i: iset) {
-      snodes.append(sep);
-      snodes.append(i); // добавим список нод
+      snodes.append(sep).append(i); // добавим список нод
       sep = ",";
     }
     return "[" + snodes + "]";
