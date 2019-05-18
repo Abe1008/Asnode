@@ -119,18 +119,10 @@ class LoadTasks extends LoadData
   {
     HashSet<Integer>    set = new HashSet<>();  // множество чисел
     ArrayList<String[]> arr = f_db.DlookupArray("SELECT nodes FROM agenda");  // список всех нод
-    // набьем множество
+    // наполним множество
     for(String[] rst: arr) {
-      String[] ss = rst[0].split("[,;]");
-      for(String s: ss) {
-        String s1 = s.replaceAll("\\D","");
-        try {
-          Integer i = Integer.parseInt(s1);
-          set.add(i);
-        } catch (NumberFormatException e) {
-          System.err.println("Неверный номер ноды: " + s);
-        }
-      }
+      Set<Integer> si = R.strInt2set(rst[0]); // преобразовать строку с чисалми в набор чисел
+      set.addAll(si);
     }
     // проверим, есть ли чего проверять?
     if(set.size() < 1)

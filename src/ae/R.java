@@ -6,6 +6,9 @@
 
 package ae;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Created by ae on 28.01.2017.
  * Ресурсный класс
@@ -19,7 +22,7 @@ Modify:
 */
 
 class R {
-  final static String Ver = "Ver. 1.2 15.05.2019"; // номер версии
+  final static String Ver = "Ver. 1.3 18.05.2019"; // номер версии
 
   // рабочая БД
   static String WorkDB = "tasklog.db";   // /var/Gmir/ CentOs Linux (в Windows будет D:\var\Gmir\)
@@ -213,6 +216,28 @@ class R {
       db.close();
       db = null;
     }
+  }
+
+  /**
+   * Преобразовать строку с числами в набор с Integer
+   * @param str строка с числами, разделенными запятыми, пробелами, точка с запятыми
+   * @return набор чисел
+   */
+  static Set<Integer> strInt2set(String str)
+  {
+    Set<Integer> set = new HashSet<>();
+    String[] ss = str.split("[,; ]");
+    for (String s: ss) {
+      String s1 = s.replaceAll("\\D", "");
+      if(s1.length() < 1) continue;
+      try {
+        Integer i = Integer.parseInt(s1);
+        set.add(i);
+      } catch (NumberFormatException e) {
+        System.err.println("Неверный формат числа: " + s);
+      }
+    }
+    return set;
   }
 
 } // end of class

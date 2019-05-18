@@ -32,7 +32,7 @@ class MyLog
   MyLog(Database db)
   {
     this.f_db = db;
-    mapNodeEmails = makeNodeEmails(); // сделать карту соотьветствия
+    mapNodeEmails = makeMapIntStr(); // сделать карту соотьветствия
   }
 
   void work()
@@ -211,72 +211,50 @@ class MyLog
   }
 
   /**
-   * сделать таблицу email, соответствующих нодам
+   * сделать карту число - строка
    */
-  private Map<Integer,String>  makeNodeEmails()
+  private Map<Integer,String> makeMapIntStr()
   {
     ArrayList<String[]> arr  = f_db.DlookupArray("SELECT DISTINCT email,nodes FROM agenda");  // список всех нод
-    // набьем множество
+    // наберём множество соответствий "нода" - массив email
     Map<Integer,Set<String>>  map = new HashMap<>();
     for(String[] rst: arr) {
       String eml = rst[0]; // электронный адрес
-      ArrayList<Integer> ai = getNumNodes(rst[1]);  // массив номер нод
-      for (Integer i : ai) {
-        Set<String> as;
-        as = map.get(i);  //  есть ли уже массив
-        if (as == null) {
-          as = new HashSet<>(); // создадим пустой
-        }
-        as.add(eml);  // дополним набор электронным адресом
-        map.put(i, as); // заполняем карту для i массивом c эл.адресами
+      Set<Integer> si = R.strInt2set(rst[1]);  // набор номеров нод
+      for(Integer i: si) {
+        Set<String> ms;   // множество (набор) строк
+        ms = map.get(i);  // есть ли уже множество строк?
+        if(ms == null)
+          ms = new HashSet<>(); // нет - создадим пустое множество
+        ms.add(eml);    // дополним набор строкой (эл.адрес)
+        map.put(i, ms); // заполняем карту для i множеством строк (эл.адреса)
       }
     }
-    // теперь у нас есть набор номеров и соответствующих им массива адресов
-    // преобразуем его в карту номера - строки с эл. адресами
+    // теперь у нас есть набор номеров и соответствующих им множества адресов
+    // преобразуем его в карту номер - строка с эл. адресами
     Map<Integer,String> mis = new HashMap<>();
     // пройдемся по ключам
     for(Integer i: map.keySet()) {
       Set<String> as = map.get(i);
-      String emls = getStrEmails(as);
+      String emls = getConcateString(as);
       mis.put(i, emls); // будем добавлять в карту для последующего использования
     }
     return mis;
   }
 
-
   /**
-   * Выделить из строки массив номеров узлов
-   * @param str
-   * @return список-массив целых чисел
+   * Соединим множество строк в одну строку, разделенными запятой.
+   * Если набор NULL, то возвращается пустая строка
+   * @param strs  множество (набор) строк
+   * @return строка, составленная из множества строк
    */
-  private ArrayList<Integer> getNumNodes(String str)
+  private String getConcateString(Set<String> strs)
   {
-    ArrayList<Integer> ai = new ArrayList<>();
-    String[] ss = str.split("[,;]");
-    for(String s: ss) {
-      String s1 = s.replaceAll("\\D","");
-      try {
-        Integer i = Integer.parseInt(s1);
-        ai.add(i);
-      } catch (NumberFormatException e) {
-        System.err.println("Неверный номер ноды: " + s);
-      }
-    }
-    return ai;
-  }
-
-  /**
-   * Соединим массив строк в одну строку с адресами, разделенными запятой
-   * @param astr  массив строк
-   * @return список-массив целых чисел
-   */
-  private String getStrEmails(Set<String> astr)
-  {
-    if(astr == null)
+    if(strs == null)
       return "";
     StringBuilder sb = new StringBuilder(256);
     String sep = "";
-    for(String s: astr) {
+    for(String s: strs) {
       sb.append(sep).append(s);
       sep =",";
     }
@@ -284,5 +262,3 @@ class MyLog
   }
 
 } // end class
-
-
