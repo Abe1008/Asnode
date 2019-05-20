@@ -234,7 +234,7 @@ class R {
       // @see https://annimon.com/article/2778
       lst =  Stream.of(str.split("[,; ]"))  // разделим запятыми, тчк-запятыми, пробелами
           .map(s->s.replaceAll("\\D",""))   // уберем нечисла
-          .filter(x -> x.length() > 0)      // пустые строки уберем
+          .filter(s -> s.length() > 0)      // пустые строки уберем
           .map(Integer::parseInt)
           .collect(Collectors.toSet());
     } catch (NumberFormatException e) {
@@ -266,23 +266,21 @@ class R {
    */
   static String concateInt(Set<Integer> setInt)
   {
-    String s = setInt.stream()
-        .sorted()
-        .map(String::valueOf)
-        .collect(Collectors.joining(",", "",""));
-    return s;
+    return setInt.stream()
+        .sorted().map(String::valueOf)
+        .collect(Collectors.joining(","));
   }
 
   /**
    * Соединить элементы набора слов и вывести в строку
-   * @param setInt  набор слов
+   * @param setStr  набор слов
    * @return строка с числами, разделенная запятыми
    */
-  static String concateStr(Set<String> setInt)
+  static String concateStr(Set<String> setStr)
   {
-    String s = setInt.stream()
-        .collect(Collectors.joining(",", "",""));
-    return s;
+    // List<String> l = setInt.stream().collect(toList());
+    // https://javarush.ru/groups/posts/809-v-java-8-mozhno-obhhedinjatjh-stroki
+    return String.join(",",setStr);
   }
 
 } // end of class
