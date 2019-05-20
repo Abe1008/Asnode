@@ -8,6 +8,8 @@ package ae;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by ae on 28.01.2017.
@@ -18,11 +20,12 @@ Modify:
 12.04.19 отсылаем письма используя только библ. mailx, убрал apache mail
 15.04.19 время жизни задач TasksTTL ч, а у журнал TasksLog На 24 ч больше
 15.05.19 в таблицу agenda пишем email куда писать и ноды за которыми следить
+20.05.19 переход на Stream API
 
 */
 
 class R {
-  final static String Ver = "Ver. 1.3 18.05.2019"; // номер версии
+  final static String Ver = "Ver. 1.4 20.05.2019"; // номер версии
 
   // рабочая БД
   static String WorkDB = "tasklog.db";   // /var/Gmir/ CentOs Linux (в Windows будет D:\var\Gmir\)
@@ -219,25 +222,60 @@ class R {
   }
 
   /**
-   * Преобразовать строку с числами в набор с Integer
+   * Преобразовать строку с числами в список чисел
    * @param str строка с числами, разделенными запятыми, пробелами, точка с запятыми
    * @return набор чисел
    */
-  static Set<Integer> strInt2set(String str)
+  static Set<Integer> setOfInt(String str)
   {
-    Set<Integer> set = new HashSet<>();
-    String[] ss = str.split("[,; ]");
-    for (String s: ss) {
-      String s1 = s.replaceAll("\\D", "");
-      if(s1.length() < 1) continue;
-      try {
-        Integer i = Integer.parseInt(s1);
-        set.add(i);
-      } catch (NumberFormatException e) {
-        System.err.println("Неверный формат числа: " + s);
-      }
+    Set<Integer> lst = new HashSet<>();
+    try {
+      // Stream API
+      // @see https://annimon.com/article/2778
+      lst =  Stream.of(str.split("[,; ]"))            // разделим запятыми, тчк-запятыми, пробелами
+          .map(s->s.replaceAll("\\D",""))   // уберем нечисла
+          .filter(x -> x.length() > 0)                      // пустые строки уберем
+          .map(Integer::parseInt).collect(Collectors.toSet());
+    } catch (NumberFormatException e) {
+      System.err.println("Неверный формат числа " + e.getMessage());
     }
+    return lst;
+  }
+
+  /**
+   * Преобразовать строку со словами, разделенными запятой в набор со словами
+   * @param str строка со словами, разделенными запятыми, пробелами, точка с запятыми
+   * @return набор слов
+   */
+  static Set<String>  setOfStr(String str)
+  {
+    Set<String> set;
+    // Stream API
+    // @see https://annimon.com/article/2778
+    set =  Stream.of(str.split("[,; ]")).filter(x -> x.length() > 0).collect(Collectors.toSet());
     return set;
+  }
+
+  /**
+   * Соединить элементы набора чисел и вывести в строку
+   * @param setInt  набор чисел
+   * @return строка с числами, разделенная запятыми
+   */
+  static String concateInt(Set<Integer> setInt)
+  {
+    String s = setInt.stream().sorted().map(String::valueOf).collect(Collectors.joining(",", "",""));
+    return s;
+  }
+
+  /**
+   * Соединить элементы набора слов и вывести в строку
+   * @param setInt  набор слов
+   * @return строка с числами, разделенная запятыми
+   */
+  static String concateStr(Set<String> setInt)
+  {
+    String s = setInt.stream().collect(Collectors.joining(",", "",""));
+    return s;
   }
 
 } // end of class

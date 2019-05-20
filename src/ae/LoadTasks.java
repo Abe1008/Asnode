@@ -60,7 +60,7 @@ class LoadTasks extends LoadData
       System.out.println("Не указаны ноды");
       return 0;
     }
-    //
+    spisnodes = "[" + spisnodes + "]";
     // начало запрашиваемого интервала
     final LocalDateTime dt1 = LocalDateTime.now().minusHours(R.HoursTasksBack);
     // выбираем по строке мета-задачи
@@ -117,29 +117,18 @@ class LoadTasks extends LoadData
    */
   private String getSpisNodes()
   {
-    HashSet<Integer>    set = new HashSet<>();  // множество чисел
+    String s;
+    HashSet<Integer> set = new HashSet<>();  // множество чисел
     ArrayList<String[]> arr = f_db.DlookupArray("SELECT nodes FROM agenda");  // список всех нод
     // наполним множество
-    for(String[] rst: arr) {
-      Set<Integer> si = R.strInt2set(rst[0]); // преобразовать строку с чисалми в набор чисел
-      set.addAll(si);
-    }
+    for(String[] rst: arr)
+      set.addAll(R.setOfInt(rst[0]));  // преобразовать строку с числами в набор чисел
     // проверим, есть ли чего проверять?
     if(set.size() < 1)
       return null;
     //
-    // добавим в массив для последующей сортировки
-    ArrayList<Integer> iset = new ArrayList<>(set);
-    Collections.sort(iset); // сортировать
-    //
-    // переведем множество в строковый список
-    StringBuilder snodes = new StringBuilder();  // список отслеживаемых нод
-    String sep = "";
-    for(Integer i: iset) {
-      snodes.append(sep).append(i); // добавим список нод
-      sep = ",";
-    }
-    return "[" + snodes + "]";
+    s = R.concateInt(set);
+    return s;
   }
 
 } // end of class

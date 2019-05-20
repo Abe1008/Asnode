@@ -217,17 +217,22 @@ class MyLog
   {
     ArrayList<String[]> arr  = f_db.DlookupArray("SELECT DISTINCT email,nodes FROM agenda");  // список всех нод
     // наберём множество соответствий "нода" - массив email
-    Map<Integer,Set<String>>  map = new HashMap<>();
+    Map<Integer,Set<String>> map = new HashMap<>();
+    // запись из БД
     for(String[] rst: arr) {
-      String eml = rst[0]; // электронный адрес
-      Set<Integer> si = R.strInt2set(rst[1]);  // набор номеров нод
-      for(Integer i: si) {
-        Set<String> ms;   // множество (набор) строк
-        ms = map.get(i);  // есть ли уже множество строк?
-        if(ms == null)
-          ms = new HashSet<>(); // нет - создадим пустое множество
-        ms.add(eml);    // дополним набор строкой (эл.адрес)
-        map.put(i, ms); // заполняем карту для i множеством строк (эл.адреса)
+      Set<String> emails = R.setOfStr(rst[0]);  // набор эл. адресов
+      Set<Integer> nodes = R.setOfInt(rst[1]);  // набор номеров нод
+      // электронный адрес
+      for(String eml : emails) { // электронный адрес
+        // номер ноды
+        for(Integer i : nodes) {
+          Set<String> ms;   // множество (набор) строк
+          ms = map.get(i);  // есть ли уже множество строк?
+          if(ms == null)
+            ms = new HashSet<>(); // нет - создадим пустое множество
+          ms.add(eml);    // дополним набор строкой (эл.адрес)
+          map.put(i, ms); // заполняем карту для i множеством строк (эл.адреса)
+        }
       }
     }
     // теперь у нас есть набор номеров и соответствующих им множества адресов
@@ -236,29 +241,10 @@ class MyLog
     // пройдемся по ключам
     for(Integer i: map.keySet()) {
       Set<String> as = map.get(i);
-      String emls = getConcateString(as);
+      String emls = R.concateStr(as); // строка с эл. адресами
       mis.put(i, emls); // будем добавлять в карту для последующего использования
     }
     return mis;
-  }
-
-  /**
-   * Соединим множество строк в одну строку, разделенными запятой.
-   * Если набор NULL, то возвращается пустая строка
-   * @param strs  множество (набор) строк
-   * @return строка, составленная из множества строк
-   */
-  private String getConcateString(Set<String> strs)
-  {
-    if(strs == null)
-      return "";
-    StringBuilder sb = new StringBuilder(256);
-    String sep = "";
-    for(String s: strs) {
-      sb.append(sep).append(s);
-      sep =",";
-    }
-    return sb.toString();
   }
 
 } // end class
