@@ -232,10 +232,11 @@ class R {
     try {
       // Stream API
       // @see https://annimon.com/article/2778
-      lst =  Stream.of(str.split("[,; ]"))            // разделим запятыми, тчк-запятыми, пробелами
+      lst =  Stream.of(str.split("[,; ]"))  // разделим запятыми, тчк-запятыми, пробелами
           .map(s->s.replaceAll("\\D",""))   // уберем нечисла
-          .filter(x -> x.length() > 0)                      // пустые строки уберем
-          .map(Integer::parseInt).collect(Collectors.toSet());
+          .filter(x -> x.length() > 0)      // пустые строки уберем
+          .map(Integer::parseInt)
+          .collect(Collectors.toSet());
     } catch (NumberFormatException e) {
       System.err.println("Неверный формат числа " + e.getMessage());
     }
@@ -252,7 +253,9 @@ class R {
     Set<String> set;
     // Stream API
     // @see https://annimon.com/article/2778
-    set =  Stream.of(str.split("[,; ]")).filter(x -> x.length() > 0).collect(Collectors.toSet());
+    set =  Stream.of(str.split("[,; ]"))
+        .filter(x -> x.length() > 0)
+        .collect(Collectors.toSet());
     return set;
   }
 
@@ -263,7 +266,10 @@ class R {
    */
   static String concateInt(Set<Integer> setInt)
   {
-    String s = setInt.stream().sorted().map(String::valueOf).collect(Collectors.joining(",", "",""));
+    String s = setInt.stream()
+        .sorted()
+        .map(String::valueOf)
+        .collect(Collectors.joining(",", "",""));
     return s;
   }
 
@@ -274,7 +280,8 @@ class R {
    */
   static String concateStr(Set<String> setInt)
   {
-    String s = setInt.stream().collect(Collectors.joining(",", "",""));
+    String s = setInt.stream()
+        .collect(Collectors.joining(",", "",""));
     return s;
   }
 
